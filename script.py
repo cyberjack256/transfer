@@ -1,11 +1,14 @@
 import csv
 import json
 import os
+import argcomplete
+import argparse
 from datetime import datetime
 
-# Configuration
-CONFIG_FILE = 'class_config.json'
-LOG_FILE = 'class_log.txt'
+# Dynamic paths for configuration and log files
+DOCUMENTS_PATH = os.path.expanduser("~/Documents")
+CONFIG_FILE = os.path.join(DOCUMENTS_PATH, 'class_config.json')
+LOG_FILE = os.path.join(DOCUMENTS_PATH, 'class_log.txt')
 
 # Directory paths for the class rosters
 BASE_DIR = '/Users/jturner/Library/CloudStorage/Box-Box/Services Training and Implementation Program/CrowdStrike University Course Materials/Class Rosters/2024'
@@ -27,16 +30,13 @@ else:
         'class_details': {
             'LOG 200': {
                 'day1_url': '',
-                'day1_passphrase': '',
+                'passphrase': '',
                 'day2_url': '',
-                'day2_passphrase': '',
                 'encounter_id': '',
             },
             'LOG 201': {
-                'day1_url': '',
-                'day1_passphrase': '',
-                'day2_url': '',
-                'day2_passphrase': '',
+                'url': '',
+                'passphrase': '',
                 'encounter_id': '',
             },
             'LOG 202': {
@@ -73,7 +73,7 @@ def read_csv(file_path, class_name):
     return users
 
 def write_csv(file_path, users):
-    fieldnames = ['User Name', 'First Name', 'Last Name', 'Email', 'Company', '6/28/22 11:00', '6/29/22 11:00', 'Score', 'Completed']
+    fieldnames = ['User Name', 'First Name', 'Last Name', 'Email', 'Company', 'Present', 'Completed']
     with open(file_path, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -84,9 +84,7 @@ def write_csv(file_path, users):
                 'Last Name': user['last_name'],
                 'Email': user['email'],
                 'Company': user['company'],
-                '6/28/22 11:00': 'Yes' if user['present'] else 'No',
-                '6/29/22 11:00': 'Yes' if user['present'] else 'No',
-                'Score': 0,  # Assuming default score 0, update as needed
+                'Present': 'Yes' if user['present'] else 'No',
                 'Completed': 'yes' if user['complete'] else 'no'
             })
 
@@ -130,93 +128,48 @@ def generate_welcome_message(class_name, day=1):
     class_details = config['class_details'][class_name]
     
     if class_name == "LOG 200":
-        if day == 1:
-            message = f"""
-Hello, and welcome! We will begin class shortly. While you’re waiting, please sign into CrowdStrike University:
+        message = f"""
+Hello, and welcome{' back' if day == 2 else ''}! We will begin class shortly. While you’re waiting, please sign into CrowdStrike University:
 [CrowdStrike University (CSU)](https://crowdstrike.litmos.com)
 
 Helpful links:
 [Falcon Encounter Login]({class_details['day1_url']})
 
-Your Class Passphrase: {class_details['day1_passphrase']}
+Your Class Passphrase: {class_details['passphrase']}
 Your Class Encounter ID: {class_details['encounter_id']}
 
-Additional Resources:
-[GraphQL Voyager](https://graphql-kit.com/graphql-voyager/)
+Application link: [GitHub - cyberjack256/weather](https://github.com/cyberjack256/weather.git)
 
 I’m looking forward to a great session!
 
 Connect with/Contact Me:
 LinkedIn: Cyberjack256
-mailto:Jack.Turner@crowdstrike.com
+Email: mailto:Jack.Turner@crowdstrike.com
 """
-        else:
-            message = f"""
-Hello, and welcome back! We will begin class shortly. While you’re waiting, please sign into CrowdStrike University:
+    elif class_name == "LOG 201":
+        message = f"""
+Good morning/afternoon{'! Welcome back to Day 2 of Log 201' if day == 2 else ', and welcome!'}. While you’re waiting, please sign into CrowdStrike University:
 [CrowdStrike University (CSU)](https://crowdstrike.litmos.com)
 
-You should have received an email from CrowdStrike (mailto:falcon.encounter@crowdstrike.com) titled, "Resuming your CrowdStrike Falcon Activity". When you click on the open portal magic link, it should take you to an authenticated session and present the Welcome to LOG 200 Class Menu. The virtual machine, Falcon LogScale instance, and course materials are all available from this page.
+Sign into CloudShare: {class_details['url']}?passphrase={class_details['passphrase']}
 
 I’m looking forward to a great session!
 
 Connect with/Contact Me:
-LinkedIn: http://linkedin.com/in/cyberjack256
-mailto:jack.Turner@crowdstrike.com
-"""
-    elif class_name == "LOG 201":
-        if day == 1:
-            message = f"""
-Good morning/afternoon! While you are waiting, please:
-1. Sign into CrowdStrike University: https://crowdstrike.litmos.com/
-2. Sign into CloudShare: {class_details['day1_url']}?passphrase={class_details['day1_passphrase']}
-
-Additional Resources:
-[Query Language Primer and Fundamentals](https://github.com/CrowdStrike/logscale-community-content/wiki/)
-[GitHub Community Content](https://github.com/CrowdStrike/logscale-community-content)
-[CrowdStrike Query Language Grammar Guide](https://library.humio.com/lql-grammar/syntax-grammar-guide.html)
-
-Looking forward to a great session ahead!
-
-Connect with/Contact:
-Linkedin: https://www.linkedin.com/in/cyberjack256/
-Email: mailto:jack.turner@crowdstrike.com
-"""
-        else:
-            message = f"""
-Good morning/afternoon! Welcome back to Day 2 of Log 201. As you get settled, please review Exercise 1.2, Prepare, Explore, and Ingest Data into LogScale. This will be the foundation for our work today.
-
-While you’re waiting, please:
-1. Sign into CrowdStrike University: https://crowdstrike.litmos.com/
-2. Sign into CloudShare Lab: {class_details['day2_url']}?passphrase={class_details['day2_passphrase']}
-
-Useful Links:
-[Query Language Primer and Fundamentals](https://github.com/CrowdStrike/logscale-community-content/wiki/)
-[GitHub Community Content](https://github.com/CrowdStrike/logscale-community-content)
-
-Looking forward to a great session ahead!
-
-Connect with/Contact:
-Linkedin: https://www.linkedin.com/in/cyberjack256/
+LinkedIn: https://www.linkedin.com/in/cyberjack256/
 Email: mailto:jack.turner@crowdstrike.com
 """
     elif class_name == "LOG 202":
         message = f"""
-Good morning/afternoon, and welcome!
-While you are waiting, please:
-1. Sign into CrowdStrike University: (https://crowdstrike.litmos.com/)
-2. Sign into CloudShare: {class_details['url']}?passphrase={class_details['passphrase']}
+Good morning/afternoon{'! Welcome back to Day 2 of Log 202' if day == 2 else ', and welcome!'}. While you’re waiting, please sign into CrowdStrike University:
+[CrowdStrike University (CSU)](https://crowdstrike.litmos.com)
 
-Additional Resources:
-[Query Language Primer and Fundamentals](https://github.com/CrowdStrike/logscale-community-content/wiki/)
-[GitHub Community Content](https://github.com/CrowdStrike/logscale-community-content)
-[CrowdStrike Query Language Grammar Guide](https://library.humio.com/lql-grammar/syntax-grammar-guide.html)
+Sign into CloudShare: {class_details['url']}?passphrase={class_details['passphrase']}
 
-If you have any questions or need assistance, feel free to connect with me:
+I’m looking forward to a great session!
 
-Looking forward to a great session ahead!
-
-Connect with/Contact:
-Linkedin: https://www.linkedin.com/in/cyberjack256/
+Connect with/Contact Me:
+LinkedIn: https://www.linkedin.com/in/cyberjack256/
 Email: mailto:jack.turner@crowdstrike.com
 """
     return message
