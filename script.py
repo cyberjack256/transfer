@@ -1,9 +1,10 @@
 import csv
 import json
 import os
-import argcomplete
 import argparse
-from datetime import datetime
+import argcomplete
+from datetime import datetime, timedelta
+import webbrowser
 
 # Dynamic paths for configuration and log files
 DOCUMENTS_PATH = os.path.expanduser("~/Documents")
@@ -51,6 +52,11 @@ else:
 def log_action(action):
     with open(LOG_FILE, 'a') as log_file:
         log_file.write(f"{datetime.now().isoformat()} - {action}\n")
+
+def list_csv_files(class_name):
+    dir_path = CLASS_DIRS[class_name]
+    files = [f for f in os.listdir(dir_path) if f.endswith('.csv')]
+    return files
 
 def read_csv(file_path, class_name):
     users = []
@@ -191,6 +197,11 @@ def remind_incomplete_users():
             print(email)
         log_action("Reminder issued for incomplete users.")
 
+def generate_tickcounter_url(start_time):
+    class_start = start_time + timedelta(minutes=5)
+    url = f"https://www.tickcounter.com/countdown/{class_start.year}{class_start.month:02}{class_start.day:02}/{class_start.hour:02}{class_start.minute:02}/{class_start.second:02}"
+    return url
+
 def display_menu():
     print("Menu:")
     print("1. Read CSV and update users")
@@ -238,7 +249,16 @@ def main():
             if class_name not in CLASS_DIRS:
                 print("Invalid class name. Please try again.")
                 continue
-            csv_file_path = os.path.join(CLASS_DIRS[class_name], 'roster.csv')
+            csv_files = list_csv_files(class_name)
+            if not csv_files:
+                print("No CSV files found in the directory.")
+                continue
+
+            print("Select a CSV file:")
+            for idx, file in enumerate(csv_files, 1):
+                print(f"{idx}. {file}")
+            file_choice = int(input("Enter the number of the CSV file to read: ")) - 1
+            csv_file_path = os.path.join(CLASS_DIRS[class_name], csv_files[file_choice])
             users = read_csv(csv_file_path, class_name)
             config['users'].extend(users)
             log_action(f"Users read from CSV and updated for class {class_name}")
